@@ -1,7 +1,19 @@
 # frozen_string_literal: true
 require "uri"
 
+module SeleniumMP
+  include MonitorMixin
+
+  def response_for(request)
+    synchronize do
+      http.request request
+    end
+  end
+end
+
 class Capybara::Selenium::Driver < Capybara::Driver::Base
+  include MonitorMixin
+
   DEFAULT_OPTIONS = {
     :browser => :firefox
   }
@@ -30,8 +42,12 @@ class Capybara::Selenium::Driver < Capybara::Driver::Base
   end
 
   def initialize(app, options={})
+    super()
     begin
       require 'selenium-webdriver'
+      unless ::Selenium::WebDriver::Remote::Http::Default.ancestors.include? SeleniumMP
+        ::Selenium::WebDriver::Remote::Http::Default.prepend SeleniumMP if ::Selenium::WebDriver::Remote::Http::Default.respond_to? :prepend
+      end
     rescue LoadError => e
       if e.message =~ /selenium-webdriver/
         raise LoadError, "Capybara's selenium driver is unable to load `selenium-webdriver`, please install the gem and add `gem 'selenium-webdriver'` to your Gemfile if you are using bundler."
@@ -39,6 +55,7 @@ class Capybara::Selenium::Driver < Capybara::Driver::Base
         raise e
       end
     end
+
 
     @app = app
     @browser = nil
@@ -72,7 +89,8 @@ class Capybara::Selenium::Driver < Capybara::Driver::Base
   end
 
   def find_xpath(selector)
-    browser.find_elements(:xpath, selector).map { |node| Capybara::Selenium::Node.new(self, node) }
+    el=browser.find_elements(:xpath, selector)
+    el.map { |node| Capybara::Selenium::Node.new(self, node) }
   end
 
   def find_css(selector)

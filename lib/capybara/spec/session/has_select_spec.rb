@@ -121,7 +121,7 @@ Capybara::SpecHelper.spec '#has_select?' do
     end
   end
 
-  it "should support locator-less usage", twtw: true do
+  it "should support locator-less usage" do
     expect(@session.has_select?(with_options: ['Norway', 'Sweden'])).to eq true
     expect(@session).to have_select(with_options: ['London'] )
   end
